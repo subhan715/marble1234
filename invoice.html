@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block content %}
+{% set active = "invoices_list" %}
+
+<div class="print-page">
+    <div class="print-header">
+        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Diamond Marble & Granite">
+        <h1>Diamond Marble &amp; Granite</h1>
+        <div>Sales Invoice</div>
+    </div>
+    <div class="print-meta">
+        <div>
+            <div><b>Invoice #:</b> {{ invoice.invoice_no }}</div>
+            <div><b>Date:</b> {{ invoice.invoice_date }}</div>
+            <div><b>Source:</b> {{ invoice.source }}</div>
+        </div>
+        <div>
+            <div><b>Customer:</b> {{ invoice.customer_name }}</div>
+            <div><b>Phone:</b> {{ invoice.phone }}</div>
+            <div><b>Payment:</b> {{ invoice.payment_method }}</div>
+            {% if invoice.services %}<div><b>Customer RFT:</b> {{ invoice.services }}</div>{% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead><tr><th>Item</th><th>Pieces</th><th>Size</th><th>Area</th><th>Price/Unit</th><th>Amount</th></tr></thead>
+        <tbody>
+        {% for it in items %}
+        <tr>
+            <td>{{ it.item_name }}</td>
+            <td>{{ it.pieces }}</td>
+            <td>{{ "%.2f"|format(it.width) }} x {{ "%.2f"|format(it.length) }} in</td>
+            <td>{{ "%.2f"|format(it.area) }} {{ it.unit }}</td>
+            <td>{{ "%.2f"|format(it.price_per_unit) }}</td>
+            <td>{{ "%.2f"|format(it.amount) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% set transport = invoice.transport or 0 %}
+    {% set rft = invoice.rft_amount or 0 %}
+    {% set tip = invoice.tip or 0 %}
+    {% if transport > 0 or rft > 0 or tip > 0 %}
+    <div style="text-align:right; margin-top:10px;">Items: {{ "%.2f"|format(invoice.total_amount) }}</div>
+    {% if rft > 0 %}<div style="text-align:right;">Customer RFT ({{ invoice.services }}):
+        {% if (invoice.rft_in1 or 0) > 0 and (invoice.rft_in2 or 0) > 0 %}{{ invoice.rft_in1 }} in x {{ invoice.rft_in2 }} in / 12 = {% endif %}{{ "%.2f"|format(invoice.rft_ft or 0) }} ft x {{ "%.2f"|format(invoice.rft_rate or 0) }} = {{ "%.2f"|format(rft) }}</div>{% endif %}
+    {% if transport > 0 %}<div style="text-align:right;">Transport: {{ "%.2f"|format(transport) }}</div>{% endif %}
+    {% if tip > 0 %}<div style="text-align:right;">Tip: {{ "%.2f"|format(tip) }}</div>{% endif %}
+    {% endif %}
+    <div class="print-total">TOTAL: {{ "%.2f"|format(invoice.total_amount + transport + rft + tip) }}</div>
+
+    {% if delivery %}
+    <p style="margin-top:20px; padding:10px; background:#eef7f5; border-radius:4px;">
+        🚚 Linked Delivery: <b>{{ delivery.delivery_no }}</b> — status: {{ delivery.status }}.
+        <a href="{{ url_for('delivery_view', delivery_id=delivery.id) }}">View Delivery Slip</a>
+    </p>
+    {% endif %}
+
+    <p style="margin-top:24px; text-align:center; color:#7f8c8d;">Thank you for your business!</p>
+
+    <div class="no-print-actions">
+        <button class="btn btn-blue" onclick="window.print()">🖨 Print Invoice</button>
+        <a href="{{ url_for('invoices_list') }}" class="btn btn-gray">Back to Invoices</a>
+        {% if session.get('role') == 'boss' %}<form method="POST" action="{{ url_for('invoice_delete', invoice_id=invoice.id) }}" style="display:inline"
+              onsubmit="return confirm('Delete this invoice permanently? Stock is not changed.');">
+            <button type="submit" class="btn btn-red">Delete Invoice</button>
+        </form>{% endif %}
+        {% if invoice.payment_method == 'Unpaid' %}
+        <form method="POST" action="{{ url_for('invoice_mark_paid', invoice_id=invoice.id) }}" style="display:inline;">
+            <select name="payment_method">
+                <option>Cash</option><option>Bank Transfer</option><option>Credit Sale</option>
+            </select>
+            <button type="submit" class="btn btn-green">Mark as Paid</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

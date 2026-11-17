@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Product Report{% endblock %}
+{% block content %}
+{% set active = "product_report" %}
+<h2 class="page-title">Product Report</h2>
+<div class="page-sub">Type a product name to see its recent sales. Leave it empty to see every product.</div>
+
+<div class="search-bar">
+    <form method="GET" style="display:flex; gap:8px;">
+        <input type="text" name="q" placeholder="Search product name e.g. Bianco..." value="{{ search }}" autofocus>
+        <button class="btn btn-blue" type="submit">Search</button>
+        {% if search %}<a href="{{ url_for('product_report') }}" class="btn btn-gray">Show all</a>{% endif %}
+    </form>
+</div>
+
+{% if search %}
+<h3 style="margin-top:20px;">Recent sales matching “{{ search }}”</h3>
+{% if rows|length > 0 %}
+<div class="table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Bill #</th><th>Customer</th><th>Product</th><th>Size (W x L)</th><th>Pcs</th><th>Area</th><th>Price/Unit</th><th>Amount</th><th>Profit</th><th></th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr>
+    <td>{{ r.invoice_date }}</td>
+    <td>{{ r.invoice_no }}</td>
+    <td>{{ r.customer_name }}</td>
+    <td>{{ r.item_name }}</td>
+    <td>{{ "%.2f"|format(r.width or 0) }} x {{ "%.2f"|format(r.length or 0) }}</td>
+    <td>{{ r.pieces }}</td>
+    <td>{{ "%.2f"|format(r.area or 0) }} {{ r.unit }}</td>
+    <td>{{ "%.2f"|format(r.price_per_unit or 0) }}</td>
+    <td>{{ "%.2f"|format(r.amount or 0) }}</td>
+    <td>{{ "%.2f"|format(r.profit or 0) }}</td>
+    <td><a href="{{ url_for('invoice_view', invoice_id=r.invoice_id) }}" class="btn btn-blue btn-sm">View Bill</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% if rows|length >= 200 %}<p style="color:#7f8c8d;">Showing the 200 most recent sales.</p>{% endif %}
+{% else %}
+<p style="margin-top:10px;">No sales found for this product.</p>
+{% endif %}
+{% endif %}
+
+<h3 style="margin-top:26px;">{{ 'Totals per product' if not search else 'Totals for matching products' }}</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Product</th><th>Bills</th><th>Pieces sold</th><th>Area sold</th><th>Sales amount</th><th>Profit</th><th>Last sale</th></tr></thead>
+<tbody>
+{% for s in summary %}
+<tr>
+    <td><a href="{{ url_for('product_report', q=s.item_name) }}">{{ s.item_name }}</a></td>
+    <td>{{ s.bills }}</td>
+    <td>{{ s.pieces }}</td>
+    <td>{{ "%.2f"|format(s.area or 0) }} {{ s.unit }}</td>
+    <td>{{ "%.2f"|format(s.amount or 0) }}</td>
+    <td>{{ "%.2f"|format(s.profit or 0) }}</td>
+    <td>{{ s.last_sale }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7" style="text-align:center;">No sales yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}
